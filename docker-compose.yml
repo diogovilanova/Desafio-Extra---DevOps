@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  wordpress:
+    image: wordpress
+    depends_on:
+      - mysql
+    container_name: dvilanovawordpress
+    networks:
+      - dvilanovarede
+    ports:
+      - "80:80"
+    volumes:
+      - arqwordpress:/var/www/html
+    restart: always
+    environment:
+      WORDPRESS_DB_HOST: dvilanovamysql
+      WORDPRESS_DB_USER: root
+      WORDPRESS_DB_PASSWORD: GAud4mZby8F3SD6P
+
+  mysql:
+    image: mysql
+    container_name: dvilanovamysql
+    environment:
+      MYSQL_ROOT_PASSWORD: GAud4mZby8F3SD6P
+      MYSQL_DATABASE: dvilanovadatabase
+    networks:
+      - dvilanovarede
+    ports:
+      - "3306:3306"
+    volumes:
+      - arqmysql:/var/lib/mysql
+    restart: always
+
+  phpmyadmin:
+    image: phpmyadmin
+    depends_on:
+      - mysql
+    container_name: dvnphpmyadmin
+    environment:
+      PMA_HOST: dvilanovamysql
+      MYSQL_ROOT_PASSWORD: GAud4mZby8F3SD6P
+    networks:
+      - dvilanovarede
+    ports:
+      - "8080:80"
+    volumes:
+      - arqphpmyadmin:/etc/phpmyadmin/config.user.inc.php
+    restart: always
+
+networks:
+  dvilanovarede:
+
+volumes:
+  arqwordpress:
+  arqphpmyadmin:
+  arqmysql:
