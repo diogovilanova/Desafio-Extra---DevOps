@@ -1,3 +1,4 @@
+# Configuração do Terraform
 terraform {
   required_providers {
     azurerm = {
@@ -13,13 +14,20 @@ provider "azurerm" {
   features {}
 }
 
-# Deploy do Resource Group
+# Configuração do TLS Provider, necessário para gerar as Chaves SSH
+provider "tls" {
+}
+
+# Obter informações sobre o cliente Azure atual, incluindo tenant_id, object_id e subscription_id
+data "azurerm_client_config" "current" {}
+
+# Criação do Resource Group
 resource "azurerm_resource_group" "rg" {
   name     = "dvilanova-rg"
   location = "East US 2"
 }
 
-# Deploy da Vnet
+# Criação da Vnet (Virtual Network)
 resource "azurerm_virtual_network" "vnet" {
   name                = "dvilanova-vnet"
   address_space       = ["10.0.0.0/16"]
@@ -27,7 +35,7 @@ resource "azurerm_virtual_network" "vnet" {
   resource_group_name = azurerm_resource_group.rg.name
 }
 
-# Deploy da Subnet
+# Criação da Subnet
 resource "azurerm_subnet" "subnet" {
   name                 = "dvilanova-subnet"
   resource_group_name  = azurerm_resource_group.rg.name
@@ -35,7 +43,7 @@ resource "azurerm_subnet" "subnet" {
   address_prefixes     = ["10.0.1.0/24"]
 }
 
-# Deploy do Network Security Group (NSG)
+# Criação do Network Security Group (NSG) e Regras de Segurança
 resource "azurerm_network_security_group" "nsg" {
   name                = "dvilanova-nsg"
   location            = azurerm_resource_group.rg.location
@@ -72,7 +80,7 @@ resource "azurerm_subnet_network_security_group_association" "subnet_nsg_assoc" 
   network_security_group_id = azurerm_network_security_group.nsg.id
 }
 
-# Deploy do Public IP
+# Criação do Public IP
 resource "azurerm_public_ip" "pip" {
   name                = "dvilanova-pip"
   location            = azurerm_resource_group.rg.location
@@ -81,7 +89,7 @@ resource "azurerm_public_ip" "pip" {
   sku                 = "Basic"
 }
 
-# Deploy NIC (Network Interface Card)
+# Criação NIC (Network Interface Card) e associação a subnet e public ip
 resource "azurerm_network_interface" "nic" {
   name                = "dvilanova-nic"
   location            = azurerm_resource_group.rg.location
@@ -101,17 +109,50 @@ resource "azurerm_network_interface_security_group_association" "nic_nsg_assoc" 
   network_security_group_id = azurerm_network_security_group.nsg.id
 }
 
-provider "tls" {
-  # O TLS Provider é necessário para gerar as Chaves SSH
-}
-
-# Recurso de chave privada TLS, gerando uma chave RSA com 4096 bits (Forte e Segura) para SSH
+# Criação da Chave Privada TLS, gerando uma chave RSA com 4096 bits (Forte e Segura) para SSH
 resource "tls_private_key" "tls-private" {
   algorithm = "RSA"
   rsa_bits  = 4096
 }
 
-# Deploy da VM (Virtual Machine)
+# Criação do Key Vault e Politica de acesso
+resource "azurerm_key_vault" "keyvault" {
+  name                        = "dvilanova-kv"
+  location                    = azurerm_resource_group.rg.location
+  resource_group_name         = azurerm_resource_group.rg.name
+  tenant_id                   = data.azurerm_client_config.current.tenant_id
+  sku_name                    = "standard"
+  purge_protection_enabled    = true # "false" para continuar na tier free, pois isso protege de soft Delete
+  soft_delete_retention_days = 7 # Proteção de exclusão ativada 7 dias, mínimo
+
+  access_policy {
+    tenant_id = data.azurerm_client_config.current.tenant_id
+    object_id = data.azurerm_client_config.current.object_id
+
+    # Para um tier free diminua a quantidade de secret_permissions para get e list
+    secret_permissions = [
+      "get",
+      "list",
+      "set",
+      "delete",
+    ]
+  }
+}
+
+# Armazenamento da Chave Privada no Key Vault
+resource "azurerm_key_vault_secret" "private_key_secret" {
+  name         = "dvilanova-private-key"
+  value        = tls_private_key.tls-private.private_key_pem
+  key_vault_id = azurerm_key_vault.keyvault.id
+}
+
+# Recuperação da Chave Privada do Key Vault,
+data "azurerm_key_vault_secret" "private_key" {
+  name         = azurerm_key_vault_secret.private_key_secret.name
+  key_vault_id = azurerm_key_vault.keyvault.id
+}
+
+# Criação da VM (Virtual Machine)
 resource "azurerm_linux_virtual_machine" "vm" {
   name                = "dvilanova-vm"
   location            = azurerm_resource_group.rg.location
@@ -149,7 +190,7 @@ resource "azurerm_linux_virtual_machine" "vm" {
     connection {
       type        = "ssh"
       user        = "azureuser"
-      private_key = tls_private_key.tls-private.private_key_pem
+      private_key = data.azurerm_key_vault_secret.private_key.value
       host        = azurerm_public_ip.pip.ip_address
     }
 
@@ -180,14 +221,4 @@ resource "azurerm_linux_virtual_machine" "vm" {
       "sudo docker-compose up -d"
     ]
   }
-}
-
-# Criar uma chave privada e uma pública para conectar a VM via SSH e para autenticar no provisioner (remote-exec)
-# Vai exibir as duas chaves na saída do terraform. 
-# Não compartilhe a chave privada e guarde!
-output "private_key" {
-  value = tls_private_key.tls-private.private_key_pem
-}
-output "public_key" {
-  value = tls_private_key.tls-private.public_key_openssh
 }
