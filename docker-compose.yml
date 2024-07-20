@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   wordpress:
-    image: wordpress
+    build: .
     depends_on:
       - mysql
     container_name: dvilanovawordpress
@@ -17,6 +17,7 @@ services:
       WORDPRESS_DB_HOST: dvilanovamysql
       WORDPRESS_DB_USER: root
       WORDPRESS_DB_PASSWORD: GAud4mZby8F3SD6P
+      WORDPRESS_DB_NAME: dvilanovadatabase
 
   mysql:
     image: mysql
