@@ -117,13 +117,13 @@ resource "tls_private_key" "tls-private" {
 
 # Criação do Key Vault e Politica de acesso
 resource "azurerm_key_vault" "keyvault" {
-  name                        = "dvilanova-kv"
-  location                    = azurerm_resource_group.rg.location
-  resource_group_name         = azurerm_resource_group.rg.name
-  tenant_id                   = data.azurerm_client_config.current.tenant_id
-  sku_name                    = "standard"
-  purge_protection_enabled    = true # "false" para continuar na tier free, pois isso protege de soft Delete
-  soft_delete_retention_days = 7 # Proteção de exclusão ativada 7 dias, mínimo
+  name                       = "dvilanova-kv"
+  location                   = azurerm_resource_group.rg.location
+  resource_group_name        = azurerm_resource_group.rg.name
+  tenant_id                  = data.azurerm_client_config.current.tenant_id
+  sku_name                   = "standard"
+  purge_protection_enabled   = true # "false" para continuar na tier free, pois isso protege de soft Delete
+  soft_delete_retention_days = 7    # Proteção de exclusão ativada 7 dias, mínimo
 
   access_policy {
     tenant_id = data.azurerm_client_config.current.tenant_id
