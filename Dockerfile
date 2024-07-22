@@ -8,7 +8,7 @@ FROM wordpress:latest
 # ENV WORDPRESS_DB_NAME=wordpress
 
 # Exponha a porta padrão do WordPress
-EXPOSE 80
+EXPOSE 8081
 
 # Configure o ponto de entrada para iniciar o WordPress
 CMD ["apache2-foreground"]

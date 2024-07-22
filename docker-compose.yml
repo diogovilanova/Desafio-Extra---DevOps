@@ -7,7 +7,7 @@ services:
     networks:
       - dvilanovarede
     ports:
-      - "80:80"
+      - "8081:80"
     volumes:
       - arqwordpress:/var/www/html
     restart: always
