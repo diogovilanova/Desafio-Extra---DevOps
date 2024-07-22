@@ -6,7 +6,7 @@ terraform {
       version = "3.112.0"
     }
     tls = {
-      source = "hashicorp/tls"
+      source  = "hashicorp/tls"
       version = "4.0.5"
     }
   }
@@ -190,32 +190,6 @@ resource "azurerm_linux_virtual_machine" "vm" {
     username   = "azureuser"
     public_key = tls_private_key.tls-private.public_key_openssh
   }
-      # Configuração do Custom Data para execução de script
-  custom_data = base64encode(<<EOF
-    #!/bin/bash
-    # Instalar dependências
-    sudo apt-get update
-    sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
-    # Adicionar chave GPG do Docker
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-    # Adicionar repositório do Docker
-    sudo add-apt-repository 'deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable'
-    # Atualizar o apt e instalar o Docker
-    sudo apt-get update
-    sudo apt-get install -y docker-ce
-    # Adicionar usuário ao grupo Docker
-    sudo usermod -aG docker azureuser
-    # Instalar Docker Compose
-    sudo curl -L 'https://github.com/docker/compose/releases/download/v2.20.2/docker-compose-$(uname -s)-$(uname -m)' -o /usr/local/bin/docker-compose
-    # Permissão de execução para o arquivo docker-compose
-    sudo chmod +x /usr/local/bin/docker-compose
-    # Instalar Git
-    sudo apt-get install -y git
-    # Clonar repositório do GitHub
-    git clone https://github.com/diogovilanova/Desafio-Extra---DevOps.git /home/azureuser/Desafio-Extra
-    # Rodar o docker-compose
-    cd /home/azureuser/Desafio-Extra
-    sudo docker-compose up -d
-  EOF
-  )
+  # Configuração do Custom Data para execução de script
+  custom_data = filebase64("setup.sh")
 }
