@@ -5,6 +5,10 @@ terraform {
       source  = "hashicorp/azurerm"
       version = "3.112.0"
     }
+    tls = {
+      source = "hashicorp/tls"
+      version = "4.0.5"
+    }
   }
 }
 
@@ -58,7 +62,7 @@ resource "azurerm_network_security_group" "nsg" {
     source_port_range          = "*"
     destination_port_range     = "22"
     source_address_prefix      = "*"
-    destination_address_prefix = azurerm_subnet.subnet.address_prefixes[0]
+    destination_address_prefix = "*"
   }
 
   security_rule {
@@ -70,7 +74,7 @@ resource "azurerm_network_security_group" "nsg" {
     source_port_range          = "*"
     destination_port_range     = "80"
     source_address_prefix      = "*"
-    destination_address_prefix = azurerm_subnet.subnet.address_prefixes[0]
+    destination_address_prefix = "*"
   }
 }
 
@@ -131,17 +135,18 @@ resource "azurerm_key_vault" "keyvault" {
 
     # Para um tier free diminua a quantidade de secret_permissions para get e list
     secret_permissions = [
-      "get",
-      "list",
-      "set",
-      "delete",
+      "Get",
+      "List",
+      "Set",
+      "Delete",
+      "Recover"
     ]
   }
 }
 
 # Armazenamento da Chave Privada no Key Vault
 resource "azurerm_key_vault_secret" "private_key_secret" {
-  name         = "dvilanova-private-key"
+  name         = "dvilanova-priv-key"
   value        = tls_private_key.tls-private.private_key_pem
   key_vault_id = azurerm_key_vault.keyvault.id
 }
@@ -185,40 +190,32 @@ resource "azurerm_linux_virtual_machine" "vm" {
     username   = "azureuser"
     public_key = tls_private_key.tls-private.public_key_openssh
   }
-  #Permitir que execute o script/comando na VM, private_key está usando a chave privada para se conectar na VM
-  provisioner "remote-exec" {
-    connection {
-      type        = "ssh"
-      user        = "azureuser"
-      private_key = data.azurerm_key_vault_secret.private_key.value
-      host        = azurerm_public_ip.pip.ip_address
-    }
-
-    #Linhas de comando do terminal para a instalação do docker, docker compose e start do docker-compose.yml
-    inline = [
-      # Instalar dependências
-      "sudo apt-get update",
-      "sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common",
-      # Adicionar chave GPG do Docker
-      "curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -",
-      # Adicionar repositório do Docker
-      "sudo add-apt-repository 'deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable'",
-      # Atualizar o apt e instalar o Docker
-      "sudo apt-get update",
-      "sudo apt-get install -y docker-ce",
-      # Adicionar usuário ao grupo Docker
-      "sudo usermod -aG docker azureuser",
-      # Instalar Docker Compose
-      "sudo curl -L 'https://github.com/docker/compose/releases/download/v2.20.2/docker-compose-$(uname -s)-$(uname -m)' -o /usr/local/bin/docker-compose",
-      # Permissão de execução para o arquivo docker-compose
-      "sudo chmod +x /usr/local/bin/docker-compose",
-      # Instalar Git
-      "sudo apt-get install -y git",
-      # Clonar repositório do GitHub
-      "git clone https://github.com/diogovilanova/Desafio-Extra---DevOps.git /home/azureuser/Desafio-Extra",
-      # Rodar o docker-compose
-      "cd /home/azureuser/Desafio-Extra",
-      "sudo docker-compose up -d"
-    ]
-  }
+      # Configuração do Custom Data para execução de script
+  custom_data = base64encode(<<EOF
+    #!/bin/bash
+    # Instalar dependências
+    sudo apt-get update
+    sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+    # Adicionar chave GPG do Docker
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+    # Adicionar repositório do Docker
+    sudo add-apt-repository 'deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable'
+    # Atualizar o apt e instalar o Docker
+    sudo apt-get update
+    sudo apt-get install -y docker-ce
+    # Adicionar usuário ao grupo Docker
+    sudo usermod -aG docker azureuser
+    # Instalar Docker Compose
+    sudo curl -L 'https://github.com/docker/compose/releases/download/v2.20.2/docker-compose-$(uname -s)-$(uname -m)' -o /usr/local/bin/docker-compose
+    # Permissão de execução para o arquivo docker-compose
+    sudo chmod +x /usr/local/bin/docker-compose
+    # Instalar Git
+    sudo apt-get install -y git
+    # Clonar repositório do GitHub
+    git clone https://github.com/diogovilanova/Desafio-Extra---DevOps.git /home/azureuser/Desafio-Extra
+    # Rodar o docker-compose
+    cd /home/azureuser/Desafio-Extra
+    sudo docker-compose up -d
+  EOF
+  )
 }

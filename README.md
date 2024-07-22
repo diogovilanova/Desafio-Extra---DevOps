@@ -471,3 +471,11 @@ depois executar o terraform plan para gerar um plano de execução das mudanças
 * Aplique a configuração
 ``terraform apply``  
 depois executar o terraform apply para aplicar todas as mudanças.
+
+PS: Lembre de registrar seu subscription com os seguintes Resource providers: Microsoft.Network, Microsoft.Compute, caso não faça isso dará erro ao executar o ``terraform apply``
+
+* Registrar o Microsoft.Network
+``az provider register --namespace Microsoft.Compute``
+
+* Registrar o Microsoft.Compute
+``az provider register --namespace Microsoft.Compute``
