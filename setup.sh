@@ -11,12 +11,16 @@ echo \
 "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
 $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
 sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-# Atualizar o apt e instalar o Docker e Docker Compose Plugin
+# Atualizar o apt
 sudo apt-get update
+# Instalar o Docker
 sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+# Instalação do Docker Compose
+sudo curl -L "https://github.com/docker/compose/releases/download/$(curl -s https://api.github.com/repos/docker/compose/releases/latest | grep tag_name | cut -d '"' -f 4)/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+# Permissões de execução para o Docker Compose
+sudo chmod +x /usr/local/bin/docker-compose
 # Baixar o docker-compose.yml do GitHub
 sudo curl -L -o /home/azureuser/docker-compose.yml https://github.com/diogovilanova/Desafio-Extra---DevOps/raw/main/docker-compose.yml
 # Rodar o docker-compose
 cd /home/azureuser
-sudo docker compose up -d
-
+sudo docker-compose up -d
