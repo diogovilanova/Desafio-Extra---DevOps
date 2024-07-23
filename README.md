@@ -74,22 +74,19 @@ E por fim chamamos a imagem, no caso o mysql.
 ``sudo docker volume create arqwordpress``
 
 * subir o container.  
-``sudo docker run -d --name dvilanovawordpress --network  dvilanovarede -p 80:80 -v arqwordpress:/var/www/html wordpress``  
+``sudo docker run -d --name dvilanovawordpress --network  dvilanovarede -p 8081:80 -v arqwordpress:/var/www/html wordpress``  
 
-acessar o wordpress: <http://localhost/dvilanovawordpress>  
+acessar o wordpress: <http://localhost:8081>  
 Nome do banco de dados: dvilanovadatabase  
 Nome de usuário: root  
 Senha: GAud4mZby8F3SD6P  
 Servidor do banco de dados: dvilanovamysql  
 Prefixo da tabela: wp\_
 
-ps: tive que parar o processo do apache2, pois estava usando a porta 80, só assim consegui criar o container do wordpress na porta 80.  
+ps: antes de definir as portas sempre verifique se existe algum serviço em execução, por exemplo, tentei criar o wordpress na porta 80, porem ja existia o serviço do apache2.  
 
-* identifiquei qual o serviço da porta 80.  
-``sudo netstat -pna | grep 80`` 
-
-* parei o serviço.  
-``sudo service apache2 stop``
+* identifiquei qual o serviço da porta.  
+``sudo netstat -pna | grep <numero_da_porta>``
 
 ### Extra  
 * instalar a imagem do phpmyadmin como interface para manipulação da linguagem SQL.  
@@ -109,8 +106,6 @@ password: GAud4mZby8F3SD6P
 * criando/gerenciando os conteineres com o docker compose.  
 * criando arquivo docker-compose.yml e utilizando o editor vscode.  
 
-			version: '3.8'
-
 			services:
 			#serviço que representa o container do WordPress.
 			  wordpress:
@@ -124,9 +119,9 @@ password: GAud4mZby8F3SD6P
 				#Conecta o container a uma rede Docker
 				networks:
 				  - dvilanovarede
-				#mapeia a porta 80 do host para a porta 80 do container, permitindo acesso via http ao serviço
+				#mapeia a porta 8081 do host para a porta 80 do container, permitindo acesso via http ao serviço
 				ports:
-				  - "80:80"
+				  - "8081:80"
 				#mapeia um volume docker para o arquivo no container, permitindo persistência de dados.
 				volumes:
 				  - arqwordpress:/var/www/html
@@ -179,6 +174,67 @@ password: GAud4mZby8F3SD6P
 			  arqwordpress:
 			  arqphpmyadmin:
 			  arqmysql:
+
+
+### Criação do Dockerfile
+
+		# Use a imagem oficial do WordPress como base
+		FROM wordpress:latest
+
+		# Optional: Defina variáveis de ambiente para configuração do WordPress, porem no docker-compose ja tem.
+		# ENV WORDPRESS_DB_HOST=db:3306
+		# ENV WORDPRESS_DB_USER=wordpress
+		# ENV WORDPRESS_DB_PASSWORD=GAud4mZby8F3SD6P
+		# ENV WORDPRESS_DB_NAME=wordpress
+
+		# Exponha a porta padrão do WordPress
+		EXPOSE 8081
+
+		# Configure o ponto de entrada para iniciar o WordPress
+		CMD ["apache2-foreground"]
+
+### Criação do script (setup.sh) para automatização das configurações da VM
+
+		#!/bin/bash
+
+		set -e
+		# Instalar dependências
+		sudo apt-get update
+		sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+		# Adicionar chave GPG do Docker
+		sudo install -m 0755 -d /etc/apt/keyrings
+		sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+		sudo chmod a+r /etc/apt/keyrings/docker.asc
+		# Adicionar repositório do Docker
+		echo \
+		"deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+		$(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+		sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+		# Atualizar o apt
+		sudo apt-get update
+		# Instalar o Docker
+		sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+		# Instalação do Docker Compose
+		echo "Instalando Docker Compose..."
+		sudo curl -L "https://github.com/docker/compose/releases/download/$(curl -s https://api.github.com/repos/docker/compose/releases/latest | grep tag_name | cut -d '"' -f 4)/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+		# Permissões de execução para o Docker Compose
+		sudo chmod +x /usr/local/bin/docker-compose
+		# Baixar o docker-compose.yml e Dockerfile do GitHub
+		sudo curl -L -o /home/azureuser/Dockerfile https://github.com/diogovilanova/Desafio-Extra---DevOps/raw/main/Dockerfile
+		sudo curl -L -o /home/azureuser/docker-compose.yml https://github.com/diogovilanova/Desafio-Extra---DevOps/raw/main/docker-compose.yml
+		# Verificar se o arquivo docker-compose.yml foi baixado
+		echo "Arquivo docker-compose.yml:"
+		ls -la /home/azureuser/docker-compose.yml
+		# Mudar para o diretório correto
+		echo "Mudando para o diretório /home/azureuser..."
+		cd /home/azureuser
+		# Verificar se a mudança de diretório foi bem-sucedida
+		echo "Diretório atual após cd:"
+		pwd
+		# Rodar o docker-compose
+		echo "Iniciando containers com Docker Compose..."
+		sudo docker-compose up -d
+		echo "Script concluído."
 
 ### Criação automatizada da VM azure com o Terraform e autenticação com o Azure CLI
 
@@ -241,6 +297,10 @@ Certifique-se de que a assinatura correta está sendo usada.
 				source  = "hashicorp/azurerm"
 				version = "3.112.0"
 				}
+				tls = {
+				source  = "hashicorp/tls"
+				version = "4.0.5"
+				}
 			}
 			}
 
@@ -294,7 +354,7 @@ Certifique-se de que a assinatura correta está sendo usada.
 				source_port_range          = "*"
 				destination_port_range     = "22"
 				source_address_prefix      = "*"
-				destination_address_prefix = azurerm_subnet.subnet.address_prefixes[0]
+				destination_address_prefix = "*"
 			}
 
 			security_rule {
@@ -306,7 +366,7 @@ Certifique-se de que a assinatura correta está sendo usada.
 				source_port_range          = "*"
 				destination_port_range     = "80"
 				source_address_prefix      = "*"
-				destination_address_prefix = azurerm_subnet.subnet.address_prefixes[0]
+				destination_address_prefix = "*"
 			}
 			}
 
@@ -353,13 +413,13 @@ Certifique-se de que a assinatura correta está sendo usada.
 
 			# Criação do Key Vault e Politica de acesso
 			resource "azurerm_key_vault" "keyvault" {
-			name                        = "dvilanova-kv"
-			location                    = azurerm_resource_group.rg.location
-			resource_group_name         = azurerm_resource_group.rg.name
-			tenant_id                   = data.azurerm_client_config.current.tenant_id
-			sku_name                    = "standard"
-			purge_protection_enabled    = true # "false" para continuar na tier free, pois isso protege de soft Delete
-			soft_delete_retention_days = 7 # Proteção de exclusão ativada 7 dias, mínimo
+			name                       = "dvilanova-kv"
+			location                   = azurerm_resource_group.rg.location
+			resource_group_name        = azurerm_resource_group.rg.name
+			tenant_id                  = data.azurerm_client_config.current.tenant_id
+			sku_name                   = "standard"
+			purge_protection_enabled   = true # "false" para continuar na tier free, pois isso protege de soft Delete
+			soft_delete_retention_days = 7    # Proteção de exclusão ativada 7 dias, mínimo
 
 			access_policy {
 				tenant_id = data.azurerm_client_config.current.tenant_id
@@ -367,17 +427,18 @@ Certifique-se de que a assinatura correta está sendo usada.
 
 				# Para um tier free diminua a quantidade de secret_permissions para get e list
 				secret_permissions = [
-				"get",
-				"list",
-				"set",
-				"delete",
+				"Get",
+				"List",
+				"Set",
+				"Delete",
+				"Recover"
 				]
 			}
 			}
 
 			# Armazenamento da Chave Privada no Key Vault
 			resource "azurerm_key_vault_secret" "private_key_secret" {
-			name         = "dvilanova-private-key"
+			name         = "dvilanova-priv-key"
 			value        = tls_private_key.tls-private.private_key_pem
 			key_vault_id = azurerm_key_vault.keyvault.id
 			}
@@ -421,61 +482,47 @@ Certifique-se de que a assinatura correta está sendo usada.
 				username   = "azureuser"
 				public_key = tls_private_key.tls-private.public_key_openssh
 			}
-			#Permitir que execute o script/comando na VM, private_key está usando a chave privada para se conectar na VM
-			provisioner "remote-exec" {
-				connection {
-				type        = "ssh"
-				user        = "azureuser"
-				private_key = data.azurerm_key_vault_secret.private_key.value
-				host        = azurerm_public_ip.pip.ip_address
-				}
-
-				#Linhas de comando do terminal para a instalação do docker, docker compose e start do docker-compose.yml
-				inline = [
-				# Instalar dependências
-				"sudo apt-get update",
-				"sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common",
-				# Adicionar chave GPG do Docker
-				"curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -",
-				# Adicionar repositório do Docker
-				"sudo add-apt-repository 'deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable'",
-				# Atualizar o apt e instalar o Docker
-				"sudo apt-get update",
-				"sudo apt-get install -y docker-ce",
-				# Adicionar usuário ao grupo Docker
-				"sudo usermod -aG docker azureuser",
-				# Instalar Docker Compose
-				"sudo curl -L 'https://github.com/docker/compose/releases/download/v2.20.2/docker-compose-$(uname -s)-$(uname -m)' -o /usr/local/bin/docker-compose",
-				# Permissão de execução para o arquivo docker-compose
-				"sudo chmod +x /usr/local/bin/docker-compose",
-				# Instalar Git
-				"sudo apt-get install -y git",
-				# Clonar repositório do GitHub
-				"git clone https://github.com/diogovilanova/Desafio-Extra---DevOps.git /home/azureuser/Desafio-Extra",
-				# Rodar o docker-compose
-				"cd /home/azureuser/Desafio-Extra",
-				"sudo docker-compose up -d"
-				]
-			}
+			# Configuração do Custom Data para execução de script
+			custom_data = filebase64("setup.sh")
 			}
 
-* Após editar o arquivo terraform main.tf, vamos executar o ``terraform plan`` e ``terraform apply``, mas antes de tudo rode o ``terraform init`` para atualizar o projeto com todas os recursos adicionados no main.tf.
+* Após editar o arquivo terraform main.tf, vamos executar o ``terraform plan`` e ``terraform apply``, mas antes de tudo execute o ``terraform init`` para atualizar o projeto com todas os recursos adicionados no main.tf.
 
 * Novamente, inicialize o diretório do Terraform e baixar as dependencias do terraform na pasta do projeto.  
 ``terraform init``
 
-* Verifique o plano de execução
+* Verifique o plano de execução  
 ``terraform plan``  
-depois executar o terraform plan para gerar um plano de execução das mudanças que o Terraform fará na infraestrutura. Além de retornar qualquer erro existente no seu arquivo main.tf no terminal
+depois executar o terraform plan para gerar um plano de execução das mudanças que o Terraform fará na infraestrutura. Além de retornar qualquer erro existente no seu arquivo main.tf no terminal.
 
-* Aplique a configuração
+* Aplique a configuração  
 ``terraform apply``  
 depois executar o terraform apply para aplicar todas as mudanças.
 
 PS: Lembre de registrar seu subscription com os seguintes Resource providers: Microsoft.Network, Microsoft.Compute, caso não faça isso dará erro ao executar o ``terraform apply``
 
-* Registrar o Microsoft.Network
+* Registrar o Microsoft.Network  
 ``az provider register --namespace Microsoft.Compute``
 
-* Registrar o Microsoft.Compute
+* Registrar o Microsoft.Compute  
 ``az provider register --namespace Microsoft.Compute``
+
+### Conectando na VM pelo terminal local
+
+Logo após a criação vamos conectar na VM pelo terminal local, mas antes precisamos obter a Private Key para conseguir autenticar via SSH com o Azure Key Vault.
+
+* Verificar se ainda estamos autenticados com o Azure CLI  
+``az login``
+
+* Em seguida, vamos recuperar a chave privada do Key Vault  
+``az keyvault secret show --name dvilanova-priv-key --vault-name dvilanova-kv --query value -o tsv > private_key.pem``  
+Esse comando vai salvar a chave privada no arquivo private_key.pem dentro do repositório do projeto.
+
+* Dá permissões adequadas para a chave privada  
+``chmod 600 private_key.pem``
+
+* Conectando na VM via SSH  
+``ssh -i private_key.pem azureuser@<IP_PUBLICO_DA_VM>``  
+utilize o ip público da sua VM no lugar de <IP_PUBLICO_DA_VM>. E como o arquivo private_key.pem está dentro do repositório do projeto ele vai autenticar automaticamente com a private key.
+
+Como o terraform roda o ``setup.sh`` sua VM já vai ter o docker, docker-compose e seu sistema atualizado automaticamente, alem de baixar os arquivos Dockerfile e docker-compose.yml, executando os mesmo para fazer toda configuração e criação.
