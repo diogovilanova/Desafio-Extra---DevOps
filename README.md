@@ -521,11 +521,15 @@ Esse comando vai salvar a chave privada no arquivo private_key.pem dentro do rep
 * Dá permissões adequadas para a chave privada  
 ``chmod 600 private_key.pem``
 
-* Usando a Azure CLI, execute o seguinte comando para obter o IP público da VM  
-``az vm show --resource-group <nome-do-grupo-de-recursos> --name <nome-da-vm> --query "publicIpAddress" --output table``  
-Substitua ``<resource-group-name>`` pelo nome do seu grupo de recursos e ``<vm-name>`` pelo nome da sua VM e o ``--output table`` exibirá a saída em uma tabela formatada que deve ser legível diretamente no terminal.  
+* Usando a Azure CLI, execute o seguinte comando para obter o IP público da VM 
+``az network public-ip show --resource-group <nome-do-grupo-de-recursos> --name <nome-do-ip-publico> --query "ipAddress" --output tsv > public_ip.txt``   
+Substitua ``<nome-do-grupo-de-recursos>`` pelo nome do seu grupo de recursos e ``<nome-do-ip-publico>`` pelo nome do seu IP público e o ``--output tsv > public_ip.txt`` vai pegar o ip público e salvar em um arquivo txt ``public_ip.txt``.  
 Nesse caso ficaria:  
-``az vm show --resource-group dvilanova-rg --name dvilanova-vm --query "publicIpAddress" --output table``
+``az network public-ip show --resource-group dvilanova-rg --name dvilanova-pip --query "ipAddress" --output tsv > public_ip.txt``
+
+* Verifique o Conteúdo do Arquivo ``public_ip.txt`` no terminal  
+``cat public_ip.txt``
+
 * Conectando na VM via SSH  
 ``ssh -i private_key.pem azureuser@<IP_PUBLICO_DA_VM>``  
 utilize o ip público da sua VM no lugar de <IP_PUBLICO_DA_VM>. E como o arquivo private_key.pem está dentro do repositório do projeto ele vai autenticar automaticamente com a private key.
