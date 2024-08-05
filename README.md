@@ -319,13 +319,13 @@ Certifique-se de que a assinatura correta está sendo usada.
 
 			# Criação do Resource Group
 			resource "azurerm_resource_group" "rg" {
-			name     = "dvilanova-rg"
+			name     = "rg-desafio-devops"
 			location = "East US 2"
 			}
 
 			# Criação da Vnet (Virtual Network)
 			resource "azurerm_virtual_network" "vnet" {
-			name                = "dvilanova-vnet"
+			name                = "vnet-desafio-devops"
 			address_space       = ["10.0.0.0/16"]
 			location            = azurerm_resource_group.rg.location
 			resource_group_name = azurerm_resource_group.rg.name
@@ -333,7 +333,7 @@ Certifique-se de que a assinatura correta está sendo usada.
 
 			# Criação da Subnet
 			resource "azurerm_subnet" "subnet" {
-			name                 = "dvilanova-subnet"
+			name                 = "subnet-desafio-devops"
 			resource_group_name  = azurerm_resource_group.rg.name
 			virtual_network_name = azurerm_virtual_network.vnet.name
 			address_prefixes     = ["10.0.1.0/24"]
@@ -341,7 +341,7 @@ Certifique-se de que a assinatura correta está sendo usada.
 
 			# Criação do Network Security Group (NSG) e Regras de Segurança
 			resource "azurerm_network_security_group" "nsg" {
-			name                = "dvilanova-nsg"
+			name                = "nsg-desafio-devops"
 			location            = azurerm_resource_group.rg.location
 			resource_group_name = azurerm_resource_group.rg.name
 
@@ -378,7 +378,7 @@ Certifique-se de que a assinatura correta está sendo usada.
 
 			# Criação do Public IP
 			resource "azurerm_public_ip" "pip" {
-			name                = "dvilanova-pip"
+			name                = "pip-desafio-devops"
 			location            = azurerm_resource_group.rg.location
 			resource_group_name = azurerm_resource_group.rg.name
 			allocation_method   = "Dynamic"
@@ -387,7 +387,7 @@ Certifique-se de que a assinatura correta está sendo usada.
 
 			# Criação NIC (Network Interface Card) e associação a subnet e public ip
 			resource "azurerm_network_interface" "nic" {
-			name                = "dvilanova-nic"
+			name                = "nic-desafio-devops"
 			location            = azurerm_resource_group.rg.location
 			resource_group_name = azurerm_resource_group.rg.name
 
@@ -413,7 +413,7 @@ Certifique-se de que a assinatura correta está sendo usada.
 
 			# Criação do Key Vault e Politica de acesso
 			resource "azurerm_key_vault" "keyvault" {
-			name                       = "dvilanova-kv"
+			name                       = "kv-desafio-devops"
 			location                   = azurerm_resource_group.rg.location
 			resource_group_name        = azurerm_resource_group.rg.name
 			tenant_id                  = data.azurerm_client_config.current.tenant_id
@@ -438,7 +438,7 @@ Certifique-se de que a assinatura correta está sendo usada.
 
 			# Armazenamento da Chave Privada no Key Vault
 			resource "azurerm_key_vault_secret" "private_key_secret" {
-			name         = "dvilanova-priv-key"
+			name         = "priv-key-desafio-devops"
 			value        = tls_private_key.tls-private.private_key_pem
 			key_vault_id = azurerm_key_vault.keyvault.id
 			}
@@ -451,7 +451,7 @@ Certifique-se de que a assinatura correta está sendo usada.
 
 			# Criação da VM (Virtual Machine)
 			resource "azurerm_linux_virtual_machine" "vm" {
-			name                = "dvilanova-vm"
+			name                = "vm-desafio-devops"
 			location            = azurerm_resource_group.rg.location
 			resource_group_name = azurerm_resource_group.rg.name
 			size                = "Standard_B1s"
@@ -515,7 +515,7 @@ Logo após a criação vamos conectar na VM pelo terminal local, mas antes preci
 ``az login``
 
 * Em seguida, vamos recuperar a chave privada do Key Vault  
-``az keyvault secret show --name dvilanova-priv-key --vault-name dvilanova-kv --query value -o tsv > private_key.pem``  
+``az keyvault secret show --name priv-key-desafio-devops --vault-name kv-desafio-devops --query value -o tsv > private_key.pem``  
 Esse comando vai salvar a chave privada no arquivo private_key.pem dentro do repositório do projeto.
 
 * Dá permissões adequadas para a chave privada  
@@ -525,7 +525,7 @@ Esse comando vai salvar a chave privada no arquivo private_key.pem dentro do rep
 ``az network public-ip show --resource-group <nome-do-grupo-de-recursos> --name <nome-do-ip-publico> --query "ipAddress" --output tsv > public_ip.txt``   
 Substitua ``<nome-do-grupo-de-recursos>`` pelo nome do seu grupo de recursos e ``<nome-do-ip-publico>`` pelo nome do seu IP público e o ``--output tsv > public_ip.txt`` vai pegar o ip público e salvar em um arquivo txt ``public_ip.txt``.  
 Nesse caso ficaria:  
-``az network public-ip show --resource-group dvilanova-rg --name dvilanova-pip --query "ipAddress" --output tsv > public_ip.txt``
+``az network public-ip show --resource-group rg-desafio-devops --name pip-desafio-devops --query "ipAddress" --output tsv > public_ip.txt``
 
 * Verifique o Conteúdo do Arquivo ``public_ip.txt`` no terminal  
 ``cat public_ip.txt``

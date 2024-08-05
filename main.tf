@@ -27,13 +27,13 @@ data "azurerm_client_config" "current" {}
 
 # Criação do Resource Group
 resource "azurerm_resource_group" "rg" {
-  name     = "dvilanova-rg"
+  name     = "rg-desafio-devops"
   location = "East US 2"
 }
 
 # Criação da Vnet (Virtual Network)
 resource "azurerm_virtual_network" "vnet" {
-  name                = "dvilanova-vnet"
+  name                = "vnet-desafio-devops"
   address_space       = ["10.0.0.0/16"]
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
@@ -41,7 +41,7 @@ resource "azurerm_virtual_network" "vnet" {
 
 # Criação da Subnet
 resource "azurerm_subnet" "subnet" {
-  name                 = "dvilanova-subnet"
+  name                 = "subnet-desafio-devops"
   resource_group_name  = azurerm_resource_group.rg.name
   virtual_network_name = azurerm_virtual_network.vnet.name
   address_prefixes     = ["10.0.1.0/24"]
@@ -49,7 +49,7 @@ resource "azurerm_subnet" "subnet" {
 
 # Criação do Network Security Group (NSG) e Regras de Segurança
 resource "azurerm_network_security_group" "nsg" {
-  name                = "dvilanova-nsg"
+  name                = "nsg-desafio-devops"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
 
@@ -86,7 +86,7 @@ resource "azurerm_subnet_network_security_group_association" "subnet_nsg_assoc" 
 
 # Criação do Public IP
 resource "azurerm_public_ip" "pip" {
-  name                = "dvilanova-pip"
+  name                = "pip-desafio-devops"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
   allocation_method   = "Dynamic"
@@ -95,7 +95,7 @@ resource "azurerm_public_ip" "pip" {
 
 # Criação NIC (Network Interface Card) e associação a subnet e public ip
 resource "azurerm_network_interface" "nic" {
-  name                = "dvilanova-nic"
+  name                = "nic-desafio-devops"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
 
@@ -121,7 +121,7 @@ resource "tls_private_key" "tls-private" {
 
 # Criação do Key Vault e Politica de acesso
 resource "azurerm_key_vault" "keyvault" {
-  name                       = "dvilanova-kv"
+  name                       = "kv-desafio-devops"
   location                   = azurerm_resource_group.rg.location
   resource_group_name        = azurerm_resource_group.rg.name
   tenant_id                  = data.azurerm_client_config.current.tenant_id
@@ -146,7 +146,7 @@ resource "azurerm_key_vault" "keyvault" {
 
 # Armazenamento da Chave Privada no Key Vault
 resource "azurerm_key_vault_secret" "private_key_secret" {
-  name         = "dvilanova-priv-key"
+  name         = "priv-key-desafio-devops"
   value        = tls_private_key.tls-private.private_key_pem
   key_vault_id = azurerm_key_vault.keyvault.id
 }
@@ -159,7 +159,7 @@ data "azurerm_key_vault_secret" "private_key" {
 
 # Criação da VM (Virtual Machine)
 resource "azurerm_linux_virtual_machine" "vm" {
-  name                = "dvilanova-vm"
+  name                = "vm-desafio-devops"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
   size                = "Standard_B1s"
